@@ -1,8 +1,0 @@
-node_modules
-.next
-.git
-.env*
-!.env.example
-*.log
-Al-Asif-Enterprise-Standalone.zip
-deploy/screenshots
