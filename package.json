@@ -1,36 +1,44 @@
 {
-  "name": "al-asif-enterprise-standalone",
-  "version": "1.0.0",
+  "name": "al-asif-enterprise",
+  "version": "0.1.0",
   "private": true,
-  "description": "Independent Al-Asif Enterprise solar business website",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.13.0"
   },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "node .next/standalone/server.js",
-    "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
-    "verify": "npm run typecheck && npm run lint && npm run build"
+    "dev": "vite",
+    "build": "vinext build && npm run validate:build",
+    "cloudflare": "node scripts/run-wrangler.mjs",
+    "preview": "npm run build && npm run cloudflare -- dev --config wrangler.jsonc",
+    "deploy": "npm run verify:config && npm run build && npm run cloudflare -- deploy --config wrangler.jsonc",
+    "setup:domain": "node scripts/configure-domain.mjs",
+    "verify:config": "node scripts/verify-production-config.mjs",
+    "validate:build": "node scripts/validate-build.mjs",
+    "test": "npm run build && node --test tests/worker.test.mjs",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
   },
   "dependencies": {
-    "next": "16.2.12",
-    "nodemailer": "9.0.3",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "next": "16.2.6",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
   },
   "devDependencies": {
-    "@types/node": "26.1.2",
-    "@types/nodemailer": "8.0.1",
-    "@types/react": "19.2.18",
+    "@cloudflare/vite-plugin": "1.37.1",
+    "@tailwindcss/postcss": "4.2.1",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "eslint": "9.39.5",
-    "eslint-config-next": "16.2.12",
-    "typescript": "6.0.3"
+    "@vitejs/plugin-react": "6.0.2",
+    "@vitejs/plugin-rsc": "0.5.26",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.2.6",
+    "react-server-dom-webpack": "19.2.6",
+    "tailwindcss": "4.2.1",
+    "typescript": "5.9.3",
+    "vinext": "0.0.50",
+    "vite": "8.0.13",
+    "wrangler": "4.92.0"
   },
-  "overrides": {
-    "postcss": "8.5.25",
-    "sharp": "0.35.3"
-  }
+  "type": "module",
+  "displayName": "Al-Asif Enterprise"
 }

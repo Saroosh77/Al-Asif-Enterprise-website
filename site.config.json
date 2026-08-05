@@ -1,0 +1,15 @@
+{
+  "domain": "your-domain.com",
+  "contact": {
+    "email": "asifmumtazk@gmail.com",
+    "phoneLabel": "0333 3674788",
+    "phoneHref": "+923333674788",
+    "whatsappHref": "https://wa.me/923333674788",
+    "address": "Shop # 6, 3.C 3/9, Nazimabad # 3, Karachi, Pakistan"
+  },
+  "emailDelivery": {
+    "to": "asifmumtazk@gmail.com",
+    "from": "Al-Asif Enterprise Website <website@your-domain.com>"
+  },
+  "turnstileSiteKey": "1x00000000000000000000AA"
+}
