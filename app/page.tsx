@@ -1,12 +1,30 @@
 "use client";
 
-import { FormEvent, MouseEvent, useState } from "react";
+import { FormEvent, MouseEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Script from "next/script";
+import siteConfig from "../site.config.json";
 
-const PHONE_DISPLAY = "0333 3674788";
-const PHONE_LINK = "+923333674788";
-const WHATSAPP_NUMBER = "923333674788";
-const EMAIL = "asifmumtazk@gmail.com";
+const CONTACT = siteConfig.contact;
+
+type FormState = "idle" | "submitting" | "success" | "error";
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (container: HTMLElement, options: {
+        sitekey: string;
+        action: string;
+        theme: "light";
+        size: "flexible";
+        callback: (token: string) => void;
+        "expired-callback": () => void;
+        "error-callback": () => void;
+      }) => string;
+      reset: (widgetId?: string) => void;
+    };
+  }
+}
 
 const services = [
   { number: "01", title: "Residential solar", text: "Right-sized on-grid, hybrid and battery-ready systems for houses, apartments and shared residential buildings.", tag: "Homes & apartments" },
@@ -46,38 +64,113 @@ function createQuoteMessage(form: FormData) {
 
 export default function Home() {
   const [formStatus, setFormStatus] = useState("");
-  const [isSending, setIsSending] = useState(false);
+  const [formState, setFormState] = useState<FormState>("idle");
+  const [formStartedAt, setFormStartedAt] = useState(() => Date.now());
+  const [turnstileSiteKey, setTurnstileSiteKey] = useState("");
+  const [turnstileScriptReady, setTurnstileScriptReady] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileContainerRef = useRef<HTMLDivElement>(null);
+  const turnstileWidgetIdRef = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/contact/config", { headers: { Accept: "application/json" } })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Contact form configuration unavailable");
+        return response.json() as Promise<{ siteKey?: string }>;
+      })
+      .then((configuration) => {
+        if (active && configuration.siteKey) setTurnstileSiteKey(configuration.siteKey);
+      })
+      .catch(() => {
+        if (active) {
+          setFormState("error");
+          setFormStatus("The secure form could not load. Please call, email or use WhatsApp instead.");
+        }
+      });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (
+      !turnstileScriptReady ||
+      !turnstileSiteKey ||
+      !window.turnstile ||
+      !turnstileContainerRef.current ||
+      turnstileWidgetIdRef.current
+    ) return;
+
+    turnstileWidgetIdRef.current = window.turnstile.render(turnstileContainerRef.current, {
+      sitekey: turnstileSiteKey,
+      action: "contact",
+      theme: "light",
+      size: "flexible",
+      callback: (token) => {
+        setTurnstileToken(token);
+      },
+      "expired-callback": () => {
+        setTurnstileToken("");
+        setFormState("error");
+        setFormStatus("Verification expired. Please complete it again.");
+      },
+      "error-callback": () => {
+        setTurnstileToken("");
+        setFormState("error");
+        setFormStatus("Verification could not load. Please try again.");
+      },
+    });
+  }, [turnstileScriptReady, turnstileSiteKey]);
+
+  function resetTurnstile() {
+    setTurnstileToken("");
+    if (window.turnstile && turnstileWidgetIdRef.current) {
+      window.turnstile.reset(turnstileWidgetIdRef.current);
+    }
+  }
 
   const handleQuote = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formElement = event.currentTarget;
     const formData = new FormData(formElement);
 
-    setIsSending(true);
+    if (!turnstileToken) {
+      setFormState("error");
+      setFormStatus("Please complete the security verification first.");
+      return;
+    }
+
+    setFormState("submitting");
     setFormStatus("Sending your consultation request…");
 
     try {
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(Object.fromEntries(formData.entries())),
+        body: JSON.stringify({
+          ...Object.fromEntries(formData.entries()),
+          startedAt: formStartedAt,
+          turnstileToken,
+        }),
       });
-      const result = (await response.json()) as { message?: string };
+      const result = (await response.json()) as { ok?: boolean; message?: string };
 
-      if (!response.ok) {
+      if (!response.ok || !result.ok) {
         throw new Error(result.message || "The request could not be sent.");
       }
 
       formElement.reset();
-      setFormStatus("Thank you. Your request has been emailed to Al-Asif Enterprise.");
+      setFormStartedAt(Date.now());
+      setFormState("success");
+      setFormStatus(result.message || "Thank you. Your request has been emailed to Al-Asif Enterprise.");
+      resetTurnstile();
     } catch (error) {
+      setFormState("error");
       setFormStatus(
         error instanceof Error
           ? `${error.message} You can still contact us through WhatsApp or phone.`
           : "The request could not be sent. Please use WhatsApp or phone.",
       );
-    } finally {
-      setIsSending(false);
+      resetTurnstile();
     }
   };
 
@@ -85,7 +178,7 @@ export default function Home() {
     const formElement = document.getElementById("quote-form") as HTMLFormElement | null;
     if (!formElement || !formElement.reportValidity()) return;
     const message = createQuoteMessage(new FormData(formElement));
-    const popup = window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, "_blank");
+    const popup = window.open(`${CONTACT.whatsappHref}?text=${encodeURIComponent(message)}`, "_blank");
     if (popup) popup.opener = null;
     setFormStatus("Your request is ready in WhatsApp. Press send there to contact us.");
   };
@@ -98,8 +191,8 @@ export default function Home() {
   const structuredData = {
     "@context": "https://schema.org", "@type": "LocalBusiness", name: "Al-Asif Enterprise",
     description: "Karachi-based provider of solar equipment, residential and commercial solar installations, backup systems and maintenance services across Pakistan.",
-    telephone: PHONE_LINK, email: EMAIL, areaServed: "Pakistan",
-    address: { "@type": "PostalAddress", streetAddress: "Suite 704/A, 7th Floor, Mashriq Center, ST-6/A, Block 14, Gulshan-e-Iqbal", addressLocality: "Karachi", addressCountry: "PK" },
+    telephone: CONTACT.phoneHref, email: CONTACT.email, areaServed: "Pakistan",
+    address: { "@type": "PostalAddress", streetAddress: "Shop # 6, 3.C 3/9, Nazimabad # 3", addressLocality: "Karachi", addressCountry: "PK" },
   };
 
   return (
@@ -136,14 +229,14 @@ export default function Home() {
               <p className="hero-lead">Reliable solar equipment, carefully planned installations and responsive support for homes and businesses in Karachi and across Pakistan.</p>
               <div className="hero-actions">
                 <a className="button button-primary" href="#quote">Book a site visit <span aria-hidden="true">→</span></a>
-                <a className="button button-ghost" href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Assalam-o-Alaikum, I would like to discuss a solar project with Al-Asif Enterprise.")}`} target="_blank" rel="noreferrer">WhatsApp us</a>
+                <a className="button button-ghost" href={`${CONTACT.whatsappHref}?text=${encodeURIComponent("Assalam-o-Alaikum, I would like to discuss a solar project with Al-Asif Enterprise.")}`} target="_blank" rel="noreferrer">WhatsApp us</a>
               </div>
               <div className="hero-points" aria-label="Service highlights">
                 <span><i>✓</i> Custom load sizing</span><span><i>✓</i> Safety-first installation</span><span><i>✓</i> Maintenance support</span>
               </div>
             </div>
             <div className="hero-visual">
-              <div className="hero-image-window"><Image src="/images/hero-solar-equipment.png" alt="Solar inverters and battery equipment supplied by Al-Asif Enterprise" width={1080} height={1350} priority sizes="(max-width: 980px) 90vw, 44vw" /></div>
+              <div className="hero-image-window"><Image src="/images/hero-solar-equipment.jpg" alt="Solar inverters and battery equipment supplied by Al-Asif Enterprise" width={1201} height={1600} priority sizes="(max-width: 980px) 90vw, 44vw" /></div>
               <div className="hero-badge top-badge"><small>Systems for</small><strong>Home · Shop · Office</strong></div>
               <div className="hero-badge bill-badge"><span aria-hidden="true">↘</span><div><small>Start with your</small><strong>Monthly electricity bill</strong></div></div>
             </div>
@@ -191,8 +284,8 @@ export default function Home() {
 
         <section className="section quote-section" id="quote">
             <div className="container quote-layout">
-            <div className="quote-copy"><p className="eyebrow"><span /> Request a consultation</p><h2>Send your bill. Get a sensible starting point.</h2><p>Complete the short form to email your request directly to Al-Asif Enterprise, or continue on WhatsApp to attach your electricity bill and roof photos.</p><div className="contact-list"><a href={`tel:${PHONE_LINK}`}><span>Call</span><strong>{PHONE_DISPLAY}</strong></a><a href={`mailto:${EMAIL}`}><span>Email</span><strong>{EMAIL}</strong></a><a href="https://www.google.com/maps/search/?api=1&query=Suite+704%2FA+Mashriq+Center+Block+14+Gulshan-e-Iqbal+Karachi" target="_blank" rel="noreferrer"><span>Office</span><strong>Suite 704/A, 7th Floor, Mashriq Center, Block 14, Gulshan-e-Iqbal, Karachi</strong></a></div></div>
-            <form className="quote-form" id="quote-form" onSubmit={handleQuote}>
+            <div className="quote-copy"><p className="eyebrow"><span /> Request a consultation</p><h2>Send your bill. Get a sensible starting point.</h2><p>Complete the short form to email your request directly to Al-Asif Enterprise, or continue on WhatsApp to attach your electricity bill and roof photos.</p><div className="contact-list"><a href={`tel:${CONTACT.phoneHref}`}><span>Call</span><strong>{CONTACT.phoneLabel}</strong></a><a href={`mailto:${CONTACT.email}`}><span>Email</span><strong>{CONTACT.email}</strong></a><a href="https://www.google.com/maps/search/?api=1&query=Shop+6+3.C+3%2F9+Nazimabad+3+Karachi" target="_blank" rel="noreferrer"><span>Office</span><strong>{CONTACT.address}</strong></a></div></div>
+            <form className="quote-form" id="quote-form" onSubmit={handleQuote} aria-busy={formState === "submitting"}>
               <div className="field-row"><label>Your name<input name="name" type="text" autoComplete="name" placeholder="Full name" required /></label><label>Phone / WhatsApp<input name="phone" type="tel" autoComplete="tel" placeholder="03xx xxxxxxx" required /></label></div>
               <div className="field-row"><label>Email address<input name="email" type="email" autoComplete="email" placeholder="you@example.com" /></label><label>City / Area<input name="city" type="text" autoComplete="address-level2" placeholder="e.g. Gulshan-e-Iqbal, Karachi" required /></label></div>
               <div className="field-row"><label>Property type<select name="property" defaultValue="" required><option value="" disabled>Select one</option><option>House</option><option>Apartment</option><option>Shop</option><option>Office</option><option>Commercial building</option><option>Industrial facility</option><option>Other</option></select></label><label>Approx. monthly bill<select name="bill" defaultValue=""><option value="" disabled>Select a range</option><option>Below PKR 15,000</option><option>PKR 15,000–30,000</option><option>PKR 30,000–60,000</option><option>PKR 60,000–120,000</option><option>Above PKR 120,000</option></select></label></div>
@@ -200,7 +293,11 @@ export default function Home() {
               <label>Anything else we should know?<textarea name="message" rows={4} placeholder="Tell us about your load, outages, existing equipment or preferred visit time." /></label>
               <label className="honeypot" aria-hidden="true">Leave this field empty<input name="website" type="text" tabIndex={-1} autoComplete="off" /></label>
               <label className="consent-field"><input name="consent" type="checkbox" required /><span>I agree that my details may be used to answer this request. Read the <a href="/privacy">privacy notice</a>.</span></label>
-              <div className="form-actions"><button className="button button-primary" type="submit" disabled={isSending}>{isSending ? "Sending…" : "Email my request"} <span aria-hidden="true">→</span></button><button className="button email-button" type="button" onClick={handleWhatsApp}>Continue on WhatsApp</button></div>
+              <div className="turnstile-row">
+                <div ref={turnstileContainerRef} />
+                {!turnstileSiteKey && <small>Loading secure verification…</small>}
+              </div>
+              <div className="form-actions"><button className="button button-primary" type="submit" disabled={formState === "submitting" || !turnstileToken}>{formState === "submitting" ? "Sending…" : "Email my request"} <span aria-hidden="true">→</span></button><button className="button email-button" type="button" onClick={handleWhatsApp}>Continue on WhatsApp</button></div>
               <p className="form-note">No payment is requested through this form. Your details are used only to respond to your inquiry.</p><p className="form-status" aria-live="polite">{formStatus}</p>
             </form>
           </div>
@@ -212,11 +309,23 @@ export default function Home() {
       </main>
 
       <footer className="site-footer">
-        <div className="container footer-top"><div><a className="brand footer-brand" href="#home"><span className="logo-window" aria-hidden="true"><Image src="/images/al-asif-letterhead.jpg" alt="" width={1582} height={2048} sizes="56px" /></span><span className="brand-name"><strong>AL-ASIF</strong><small>ENTERPRISE</small></span></a><p>Solar equipment, projects and support from Karachi to customers across Pakistan.</p></div><div className="footer-links"><div><span>Explore</span><a href="#services">Services</a><a href="#projects">Projects</a><a href="#process">Process</a></div><div><span>Contact</span><a href={`tel:${PHONE_LINK}`}>{PHONE_DISPLAY}</a><a href={`mailto:${EMAIL}`}>{EMAIL}</a><a href="#quote">Request a quote</a></div></div></div>
+        <div className="container footer-top"><div><a className="brand footer-brand" href="#home"><span className="logo-window" aria-hidden="true"><Image src="/images/al-asif-letterhead.jpg" alt="" width={1582} height={2048} sizes="56px" /></span><span className="brand-name"><strong>AL-ASIF</strong><small>ENTERPRISE</small></span></a><p>Solar equipment, projects and support from Karachi to customers across Pakistan.</p></div><div className="footer-links"><div><span>Explore</span><a href="#services">Services</a><a href="#projects">Projects</a><a href="#process">Process</a></div><div><span>Contact</span><a href={`tel:${CONTACT.phoneHref}`}>{CONTACT.phoneLabel}</a><a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a><a href="#quote">Request a quote</a></div></div></div>
         <div className="container footer-bottom"><span>© {new Date().getFullYear()} Al-Asif Enterprise. All rights reserved.</span><span><a href="/privacy">Privacy</a> · Karachi, Pakistan</span></div>
       </footer>
 
-      <a className="floating-whatsapp" href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Assalam-o-Alaikum, I would like a solar consultation from Al-Asif Enterprise.")}`} target="_blank" rel="noreferrer" aria-label="Chat with Al-Asif Enterprise on WhatsApp"><span aria-hidden="true">WA</span> WhatsApp</a>
+      <a className="floating-whatsapp" href={`${CONTACT.whatsappHref}?text=${encodeURIComponent("Assalam-o-Alaikum, I would like a solar consultation from Al-Asif Enterprise.")}`} target="_blank" rel="noreferrer" aria-label="Chat with Al-Asif Enterprise on WhatsApp"><span aria-hidden="true">WA</span> WhatsApp</a>
+
+      <Script
+        id="cloudflare-turnstile"
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+        strategy="afterInteractive"
+        onLoad={() => setTurnstileScriptReady(true)}
+        onReady={() => setTurnstileScriptReady(true)}
+        onError={() => {
+          setFormState("error");
+          setFormStatus("Security verification could not load. Please call, email or use WhatsApp instead.");
+        }}
+      />
     </>
   );
 }
