@@ -26,6 +26,16 @@ const limits: Record<keyof ContactSubmission, number> = {
   message: 2000,
 };
 
+const ALLOWED_PROPERTY_TYPES = new Set([
+  "House",
+  "Apartment",
+  "Shop",
+  "Office",
+  "Commercial building",
+  "Industrial facility",
+  "Other",
+]);
+
 function clean(value: unknown, max: number) {
   return typeof value === "string" ? value.trim().replace(/\0/g, "").slice(0, max) : "";
 }
@@ -43,8 +53,11 @@ export function validateContactPayload(payload: unknown): ValidationResult {
 
   if (isBot) return { ok: true, data, isBot: true };
 
-  if (!data.name || !data.phone || !data.city || !data.property) {
+  if (!data.name || data.name.length < 2 || !data.phone || data.phone.length < 7 || !data.city) {
     return { ok: false, message: "Please complete your name, phone, city and property type." };
+  }
+  if (!ALLOWED_PROPERTY_TYPES.has(data.property)) {
+    return { ok: false, message: "Please select a valid property type." };
   }
   if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
     return { ok: false, message: "Please enter a valid email address or leave it empty." };
