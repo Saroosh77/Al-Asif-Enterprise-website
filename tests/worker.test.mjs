@@ -36,6 +36,10 @@ function request(path = "/api/contact", body = {}, origin = "https://example.com
   });
 }
 
+function base64OfSize(byteLength) {
+  return Buffer.alloc(byteLength, "a").toString("base64");
+}
+
 test("homepage renders with production security headers", async () => {
   const response = await worker.fetch(
     new Request("https://example.com/", { headers: { Accept: "text/html" } }),
@@ -157,6 +161,137 @@ test("a verified submission is delivered through the email API", async () => {
     const email = JSON.parse(calls[1].init.body);
     assert.equal(email.reply_to, "customer@example.net");
     assert.match(email.subject, /Test Customer/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("a valid attachment reaches Resend's attachments field", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (input, init) => {
+    const url = String(input);
+    calls.push({ url, init });
+    if (url.includes("siteverify")) return Response.json({ success: true, action: "contact" });
+    if (url.includes("api.resend.com")) return Response.json({ id: "email_test" });
+    return new Response("Unexpected request", { status: 500 });
+  };
+  try {
+    const content = base64OfSize(1024);
+    const response = await worker.fetch(
+      request("/api/contact", {
+        attachments: [{ filename: "electricity-bill.jpg", mimeType: "image/jpeg", content }],
+      }),
+      baseEnv,
+      context,
+    );
+    assert.equal(response.status, 200);
+    const email = JSON.parse(calls[1].init.body);
+    assert.deepEqual(email.attachments, [{ filename: "electricity-bill.jpg", content }]);
+    assert.match(email.text, /electricity-bill\.jpg/);
+    assert.match(email.html, /electricity-bill\.jpg/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("a submission without attachments omits the attachments field", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (input, init) => {
+    const url = String(input);
+    calls.push({ url, init });
+    if (url.includes("siteverify")) return Response.json({ success: true, action: "contact" });
+    if (url.includes("api.resend.com")) return Response.json({ id: "email_test" });
+    return new Response("Unexpected request", { status: 500 });
+  };
+  try {
+    const response = await worker.fetch(request(), baseEnv, context);
+    assert.equal(response.status, 200);
+    const email = JSON.parse(calls[1].init.body);
+    assert.ok(!("attachments" in email));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("more than 3 attachments are rejected", async () => {
+  const attachment = { filename: "photo.jpg", mimeType: "image/jpeg", content: base64OfSize(1024) };
+  const response = await worker.fetch(
+    request("/api/contact", { attachments: [attachment, attachment, attachment, attachment] }),
+    baseEnv,
+    context,
+  );
+  assert.equal(response.status, 400);
+  const body = await response.json();
+  assert.match(body.message, /up to 3 files/);
+});
+
+test("a single attachment larger than 4MB is rejected", async () => {
+  const response = await worker.fetch(
+    request("/api/contact", {
+      attachments: [{ filename: "bill.pdf", mimeType: "application/pdf", content: base64OfSize(4 * 1024 * 1024 + 1) }],
+    }),
+    baseEnv,
+    context,
+  );
+  assert.equal(response.status, 400);
+  const body = await response.json();
+  assert.match(body.message, /4MB/);
+  assert.match(body.message, /WhatsApp/);
+});
+
+test("combined attachments over 8MB are rejected even when each file is under 4MB", async () => {
+  const content = base64OfSize(2_796_203);
+  const attachment = { filename: "photo.jpg", mimeType: "image/jpeg", content };
+  const response = await worker.fetch(
+    request("/api/contact", { attachments: [attachment, attachment, attachment] }),
+    baseEnv,
+    context,
+  );
+  assert.equal(response.status, 400);
+  const body = await response.json();
+  assert.match(body.message, /8MB combined/);
+});
+
+test("an attachment with a disallowed MIME type is rejected", async () => {
+  const response = await worker.fetch(
+    request("/api/contact", {
+      attachments: [{ filename: "archive.zip", mimeType: "application/zip", content: base64OfSize(1024) }],
+    }),
+    baseEnv,
+    context,
+  );
+  assert.equal(response.status, 400);
+  const body = await response.json();
+  assert.match(body.message, /supported file type/);
+});
+
+test("an attachment with malformed base64 content is rejected", async () => {
+  const response = await worker.fetch(
+    request("/api/contact", {
+      attachments: [{ filename: "bill.jpg", mimeType: "image/jpeg", content: "not-valid-base64!!" }],
+    }),
+    baseEnv,
+    context,
+  );
+  assert.equal(response.status, 400);
+});
+
+test("invalid attachments are rejected before Turnstile is called", async () => {
+  const originalFetch = globalThis.fetch;
+  let externalCalls = 0;
+  globalThis.fetch = async () => { externalCalls += 1; return new Response(); };
+  try {
+    const response = await worker.fetch(
+      request("/api/contact", {
+        attachments: [{ filename: "bill.pdf", mimeType: "application/pdf", content: base64OfSize(4 * 1024 * 1024 + 1) }],
+      }),
+      baseEnv,
+      context,
+    );
+    assert.equal(response.status, 400);
+    assert.equal(externalCalls, 0);
   } finally {
     globalThis.fetch = originalFetch;
   }

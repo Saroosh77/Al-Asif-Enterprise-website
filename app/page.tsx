@@ -4,6 +4,13 @@ import { FormEvent, MouseEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Script from "next/script";
 import siteConfig from "../site.config.json";
+import {
+  ALLOWED_ATTACHMENT_TYPES,
+  MAX_ATTACHMENTS,
+  MAX_ATTACHMENT_BYTES,
+  MAX_ATTACHMENTS_TOTAL_BYTES,
+  resolveAttachmentType,
+} from "../lib/contact";
 
 const CONTACT = siteConfig.contact;
 
@@ -49,6 +56,17 @@ const faqs = [
   { question: "Can you repair or upgrade an existing solar setup?", answer: "Yes. We can inspect an existing system, identify faults or bottlenecks, and propose maintenance, protection, battery or capacity upgrades." },
   { question: "What should I send for a quick estimate?", answer: "Send a recent electricity bill, your city and area, property type, roof photos if available, and a list of appliances that must stay on during outages." },
 ];
+
+async function fileToBase64(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
 
 function createQuoteMessage(form: FormData) {
   const value = (key: string) => String(form.get(key) || "Not provided");
@@ -139,17 +157,56 @@ export default function Home() {
       return;
     }
 
+    const files = formData
+      .getAll("attachments")
+      .filter((entry): entry is File => entry instanceof File && entry.size > 0);
+
+    if (files.length > MAX_ATTACHMENTS) {
+      setFormState("error");
+      setFormStatus(`You can attach up to ${MAX_ATTACHMENTS} files.`);
+      return;
+    }
+    const oversized = files.find((file) => file.size > MAX_ATTACHMENT_BYTES);
+    if (oversized) {
+      setFormState("error");
+      setFormStatus(`"${oversized.name}" is larger than 4MB. Please choose a smaller file, or use the "Continue on WhatsApp" button instead.`);
+      return;
+    }
+    const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+    if (totalBytes > MAX_ATTACHMENTS_TOTAL_BYTES) {
+      setFormState("error");
+      setFormStatus('Your attached files add up to more than 8MB combined. Please remove one, or use the "Continue on WhatsApp" button instead.');
+      return;
+    }
+    const invalidType = files.find((file) => !ALLOWED_ATTACHMENT_TYPES.has(resolveAttachmentType(file.name, file.type)));
+    if (invalidType) {
+      setFormState("error");
+      setFormStatus(`"${invalidType.name}" is not a supported file type. Please attach a JPG, PNG, WEBP, HEIC or PDF file.`);
+      return;
+    }
+
     setFormState("submitting");
     setFormStatus("Sending your consultation request…");
 
     try {
+      const attachments = await Promise.all(files.map(async (file) => ({
+        filename: file.name,
+        mimeType: resolveAttachmentType(file.name, file.type),
+        content: await fileToBase64(file),
+      })));
+
+      const fields = Object.fromEntries(
+        Array.from(formData.entries()).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+      );
+
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...Object.fromEntries(formData.entries()),
+          ...fields,
           startedAt: formStartedAt,
           turnstileToken,
+          attachments,
         }),
       });
       const result = (await response.json()) as { ok?: boolean; message?: string };
@@ -291,6 +348,10 @@ export default function Home() {
               <div className="field-row"><label>Property type<select name="property" defaultValue="" required><option value="" disabled>Select one</option><option>House</option><option>Apartment</option><option>Shop</option><option>Office</option><option>Commercial building</option><option>Industrial facility</option><option>Other</option></select></label><label>Approx. monthly bill<select name="bill" defaultValue=""><option value="" disabled>Select a range</option><option>Below PKR 15,000</option><option>PKR 15,000–30,000</option><option>PKR 30,000–60,000</option><option>PKR 60,000–120,000</option><option>Above PKR 120,000</option></select></label></div>
               <div className="field-row"><label>Backup requirement<select name="backup" defaultValue=""><option value="" disabled>Select one</option><option>No battery backup</option><option>Essential loads only</option><option>Most appliances</option><option>Not sure yet</option></select></label><label>Preferred reply method<select name="preferredContact" defaultValue="WhatsApp"><option>WhatsApp</option><option>Phone call</option><option>Email</option></select></label></div>
               <label>Anything else we should know?<textarea name="message" rows={4} placeholder="Tell us about your load, outages, existing equipment or preferred visit time." /></label>
+              <label>Attach your bill or roof photos (optional)
+                <input name="attachments" type="file" accept="image/jpeg,image/png,image/webp,image/heic,application/pdf" multiple />
+                <small className="field-hint">Up to 3 files, 4MB each (8MB total). JPG, PNG, WEBP, HEIC or PDF.</small>
+              </label>
               <label className="honeypot" aria-hidden="true">Leave this field empty<input name="website" type="text" tabIndex={-1} autoComplete="off" /></label>
               <label className="consent-field"><input name="consent" type="checkbox" required /><span>I agree that my details may be used to answer this request. Read the <a href="/privacy">privacy notice</a>.</span></label>
               <div className="turnstile-row">

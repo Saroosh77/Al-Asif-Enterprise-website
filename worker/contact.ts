@@ -1,5 +1,12 @@
 import siteConfig from "../site.config.json";
-import { buildContactHtml, buildContactText, validateContactPayload, type ContactSubmission } from "../lib/contact";
+import {
+  buildContactHtml,
+  buildContactText,
+  validateAttachments,
+  validateContactPayload,
+  type ContactAttachment,
+  type ContactSubmission,
+} from "../lib/contact";
 
 export interface WorkerEnv {
   ASSETS: Fetcher;
@@ -14,7 +21,7 @@ type TurnstileResponse = {
   "error-codes"?: string[];
 };
 
-const MAX_BODY_BYTES = 12_000;
+const MAX_BODY_BYTES = 12_000_000;
 const MIN_FORM_TIME_MS = 1_500;
 const MAX_FORM_AGE_MS = 2 * 60 * 60 * 1_000;
 
@@ -94,8 +101,13 @@ async function verifyTurnstile(
   return result.success === true && (!result.action || result.action === "contact");
 }
 
-async function deliverEmail(data: ContactSubmission, apiKey: string): Promise<boolean> {
+async function deliverEmail(
+  data: ContactSubmission,
+  attachments: ContactAttachment[],
+  apiKey: string,
+): Promise<boolean> {
   const subject = `Solar inquiry: ${data.name} — ${data.city}`;
+  const attachmentNames = attachments.map((attachment) => attachment.filename);
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -108,8 +120,9 @@ async function deliverEmail(data: ContactSubmission, apiKey: string): Promise<bo
       to: [siteConfig.emailDelivery.to],
       reply_to: data.email || undefined,
       subject,
-      text: buildContactText(data),
-      html: buildContactHtml(data),
+      text: buildContactText(data, attachmentNames),
+      html: buildContactHtml(data, attachmentNames),
+      ...(attachments.length > 0 ? { attachments } : {}),
     }),
   });
 
@@ -181,6 +194,11 @@ export async function handleContactRequest(
     });
   }
 
+  const attachmentValidation = validateAttachments(body.attachments);
+  if (!attachmentValidation.ok) {
+    return jsonResponse(400, { ok: false, message: attachmentValidation.message });
+  }
+
   const startedAt = typeof body.startedAt === "number" ? body.startedAt : Number(body.startedAt);
   const formAge = Date.now() - startedAt;
   if (!Number.isFinite(startedAt) || formAge < MIN_FORM_TIME_MS || formAge > MAX_FORM_AGE_MS) {
@@ -220,7 +238,7 @@ export async function handleContactRequest(
   }
 
   try {
-    const delivered = await deliverEmail(validation.data, env.RESEND_API_KEY);
+    const delivered = await deliverEmail(validation.data, attachmentValidation.attachments, env.RESEND_API_KEY);
     if (!delivered) throw new Error("Email provider rejected the message");
   } catch (error) {
     console.error("Contact submission failed", error);
