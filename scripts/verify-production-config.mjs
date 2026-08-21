@@ -24,8 +24,9 @@ if (!validEmail(siteConfig.contact?.email) || placeholder.test(siteConfig.contac
 if (!validEmail(siteConfig.emailDelivery?.to) || placeholder.test(siteConfig.emailDelivery.to)) {
   errors.push("Set emailDelivery.to in site.config.json to the inbox that should receive enquiries.");
 }
-if (placeholder.test(siteConfig.emailDelivery?.from || "") || !String(siteConfig.emailDelivery?.from || "").includes(`@${domain}>`)) {
-  errors.push("Set emailDelivery.from to an address on the verified sending domain.");
+const fromHost = String(siteConfig.emailDelivery?.from || "").match(/@([^>]+)>/)?.[1]?.toLowerCase() || "";
+if (placeholder.test(siteConfig.emailDelivery?.from || "") || !(fromHost === domain || fromHost.endsWith(`.${domain}`))) {
+  errors.push("Set emailDelivery.from to an address on the verified sending domain (the root domain or a subdomain of it).");
 }
 if (placeholder.test(siteConfig.contact?.phoneHref || "") || !/^\+[1-9]\d{7,14}$/.test(siteConfig.contact?.phoneHref || "")) {
   errors.push("Set contact.phoneHref to the real international phone number without spaces.");
