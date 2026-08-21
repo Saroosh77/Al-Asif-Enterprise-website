@@ -48,7 +48,7 @@ export default function PrivacyPage() {
 
         <section className="legal-section">
           <h2>Contact</h2>
-          <p>Al-Asif Enterprise, Suite 704/A, 7th Floor, Mashriq Center, ST-6/A, Block 14, Gulshan-e-Iqbal, Karachi, Pakistan.</p>
+          <p>Al-Asif Enterprise, Shop # 6, 3.C 3/9, Nazimabad # 3, Karachi, Pakistan.</p>
           <ul>
             <li>Email: <a href={`mailto:${EMAIL}`}>{EMAIL}</a></li>
             <li>Phone: <a href="tel:+923333674788">{PHONE}</a></li>

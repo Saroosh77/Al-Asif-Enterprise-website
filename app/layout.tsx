@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
-
-const siteUrl = process.env.SITE_URL || "https://example.com";
+import siteConfig from "../site.config.json";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(`https://${siteConfig.domain}`),
   title: {
     default: "Al-Asif Enterprise | Solar Equipment & Projects Pakistan",
     template: "%s | Al-Asif Enterprise",
@@ -31,9 +30,9 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_PK",
     images: [{
-      url: "/images/hero-solar-equipment.png",
-      width: 1080,
-      height: 1350,
+      url: "/images/hero-solar-equipment.jpg",
+      width: 1201,
+      height: 1600,
       alt: "Al-Asif Enterprise solar equipment and installation services",
     }],
   },

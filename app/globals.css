@@ -67,7 +67,7 @@ img { display: block; }
 .hero-visual { position: relative; min-width: 0; padding: 20px 0 28px 20px; }
 .hero-image-window { position: relative; overflow: hidden; aspect-ratio: .95; border: 12px solid rgba(255,255,255,.96); border-radius: 34px; background: #d8dcdb; box-shadow: 0 40px 80px rgba(0,0,0,.32); }
 .hero-image-window::after { position: absolute; inset: 0; content: ""; background: linear-gradient(to top,rgba(3,27,45,.24),transparent 48%); }
-.hero-image-window img { position: absolute; top: -14.2%; left: -26%; width: 158%; max-width: none; height: auto; }
+.hero-image-window img { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; object-position: center; }
 .hero-badge { position: absolute; z-index: 2; display: grid; padding: 15px 18px; border: 1px solid rgba(255,255,255,.38); border-radius: 18px; background: rgba(255,255,255,.92); color: var(--ink-deep); box-shadow: 0 18px 42px rgba(2,21,34,.22); backdrop-filter: blur(12px); }
 .hero-badge small { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .hero-badge strong { margin-top: 4px; font-size: 14px; }
@@ -104,9 +104,9 @@ img { display: block; }
 .equipment-card-large { grid-row: 1/3; }
 .equipment-image { position: absolute; inset: 0; background-repeat: no-repeat; transition: transform 500ms ease; }
 .equipment-card:hover .equipment-image { transform: scale(1.035); }
-.equipment-main { background-image: url("/images/project-hybrid-inverter.png"); background-size: 183% auto; background-position: 7% 17%; }
-.equipment-inverter { background-image: url("/images/project-inverter-options.png"); background-size: 305% auto; background-position: 99% 17.5%; }
-.equipment-battery { background-image: url("/images/project-battery-solutions.png"); background-size: 305% auto; background-position: 99% 43.5%; }
+.equipment-main { background-image: url("/images/project-hybrid-inverter.jpg"); background-size: cover; background-position: center; }
+.equipment-inverter { background-image: url("/images/project-inverter-options.jpg"); background-size: cover; background-position: center; }
+.equipment-battery { background-image: url("/images/project-battery-solutions.jpg"); background-size: cover; background-position: center; }
 .equipment-card::after { position: absolute; inset: 0; content: ""; background: linear-gradient(to top,rgba(2,20,33,.96) 0%,rgba(2,20,33,.18) 55%,transparent 75%); }
 .equipment-caption { position: absolute; right: 0; bottom: 0; left: 0; z-index: 2; padding: 28px; }
 .equipment-caption>span { color: var(--orange-soft); font-size: 10px; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
@@ -161,6 +161,17 @@ img { display: block; }
 .quote-form input,.quote-form select { height: 50px; padding: 0 14px; }
 .quote-form textarea { min-height: 112px; padding: 14px; resize: vertical; }
 .quote-form input:focus,.quote-form select:focus,.quote-form textarea:focus { border-color: var(--orange); background: #fff; box-shadow: 0 0 0 4px rgba(255,147,0,.12); }
+.quote-form input[type="file"] { height: auto; min-height: 50px; padding: 8px 10px; display: flex; align-items: center; color: var(--muted); font-size: 12px; }
+.quote-form input[type="file"]::file-selector-button,
+.quote-form input[type="file"]::-webkit-file-upload-button {
+  margin-right: 12px; padding: 9px 16px; border: none; border-radius: 9px;
+  background: var(--orange); color: #fff; font-size: 11px; font-weight: 850;
+  letter-spacing: .04em; text-transform: uppercase; cursor: pointer;
+  transition: background 160ms ease;
+}
+.quote-form input[type="file"]:hover::file-selector-button,
+.quote-form input[type="file"]:hover::-webkit-file-upload-button { background: var(--ink); }
+.field-hint { margin: -10px 0 18px; color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: 0; text-transform: none; }
 .quote-form .form-actions { margin-top: 6px; }
 .email-button { border: 1px solid #d9dfdc; background: #fff; color: var(--ink); }
 .button:disabled { cursor: wait; opacity: .65; transform: none; }
@@ -168,6 +179,9 @@ img { display: block; }
 .consent-field { grid-template-columns: 20px 1fr!important; align-items: start; gap: 10px!important; margin: 2px 0 20px!important; color: var(--muted)!important; font-size: 12px!important; font-weight: 500!important; letter-spacing: 0!important; line-height: 1.55; text-transform: none!important; }
 .consent-field input { width: 18px!important; height: 18px!important; margin: 1px 0 0; accent-color: var(--orange); }
 .consent-field a { color: var(--ink); font-weight: 800; text-decoration: underline; text-decoration-color: var(--orange); text-underline-offset: 3px; }
+.turnstile-row { min-height: 66px; max-width: 100%; display: grid; align-items: center; overflow: hidden; margin: 4px 0 8px; }
+.turnstile-row > div { max-width: 100%; }
+.turnstile-row small { color: var(--muted); font-size: 11px; }
 .form-note,.form-status { margin: 12px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .form-status { min-height: 17px; color: var(--green); font-weight: 700; }
 
@@ -252,7 +266,6 @@ img { display: block; }
   .service-card { min-height: 290px; padding: 24px; }
   .equipment-gallery { grid-template-columns: 1fr; grid-template-rows: none; }
   .equipment-card,.equipment-card-large { grid-row: auto; min-height: 360px; }
-  .equipment-main { background-size: 190% auto; }
   .step { grid-template-columns: 48px 1fr; }
   .about-panel { min-height: auto; padding: 34px 25px; }
   .about-facts { grid-template-columns: 1fr; margin-top: 42px; }
