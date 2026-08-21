@@ -226,7 +226,7 @@ img { display: block; }
   .mobile-menu { display: block; }
   .hero-layout { grid-template-columns: 1fr; gap: 40px; padding-top: 70px; padding-bottom: 140px; }
   .hero-copy { max-width: 760px; }
-  .hero-visual { max-width: 650px; margin-inline: auto; }
+  .hero-visual { width: 100%; max-width: 650px; margin-inline: auto; }
   .top-badge { right: -8px; }
   .bill-badge { right: -6px; }
   .split-heading,.process-layout,.about-layout,.quote-layout,.faq-layout { grid-template-columns: 1fr; gap: 42px; }
