@@ -20,8 +20,8 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/" },
   icons: {
-    icon: "/images/al-asif-letterhead.jpg",
-    shortcut: "/images/al-asif-letterhead.jpg",
+    icon: "/images/al-asif-logo.png",
+    shortcut: "/images/al-asif-logo.png",
   },
   openGraph: {
     title: "Al-Asif Enterprise | Solar Power Solutions",

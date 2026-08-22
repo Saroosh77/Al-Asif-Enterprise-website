@@ -25,8 +25,8 @@ img { display: block; }
 .site-header { position: sticky; top: 0; z-index: 50; border-bottom: 1px solid rgba(6,43,69,.1); background: rgba(247,246,241,.93); backdrop-filter: blur(16px); }
 .header-inner { min-height: 78px; display: flex; align-items: center; gap: 28px; }
 .brand { display: inline-flex; align-items: center; gap: 12px; flex: 0 0 auto; }
-.logo-window { position: relative; width: 54px; height: 54px; flex: 0 0 54px; overflow: hidden; border-radius: 13px; background: #fff; box-shadow: inset 0 0 0 1px rgba(6,43,69,.08); }
-.logo-window img { position: absolute; top: -5px; left: -16px; width: 340px; max-width: none; height: auto; }
+.logo-window { position: relative; width: 54px; height: 54px; flex: 0 0 54px; overflow: hidden; border-radius: 13px; box-shadow: inset 0 0 0 1px rgba(6,43,69,.08); }
+.logo-window img { width: 100%; height: 100%; object-fit: cover; }
 .brand-name { display: grid; gap: 1px; line-height: 1; }
 .brand-name strong { color: var(--ink); font-size: 18px; letter-spacing: .045em; }
 .brand-name small { color: var(--slate); font-size: 10px; font-weight: 800; letter-spacing: .26em; }
@@ -239,7 +239,6 @@ img { display: block; }
   .container { width: min(100% - 28px,1180px); }
   .header-inner { min-height: 70px; }
   .logo-window { width: 48px; height: 48px; flex-basis: 48px; }
-  .logo-window img { top: -5px; left: -15px; width: 310px; }
   .brand-name strong { font-size: 15px; }
   .brand-name small { font-size: 8px; }
   .hero-layout { padding-top: 58px; padding-bottom: 196px; }

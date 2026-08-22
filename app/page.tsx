@@ -259,7 +259,7 @@ export default function Home() {
       <header className="site-header">
         <div className="container header-inner">
           <a className="brand" href="#home" aria-label="Al-Asif Enterprise home">
-            <span className="logo-window" aria-hidden="true"><Image src="/images/al-asif-letterhead.jpg" alt="" width={1582} height={2048} priority sizes="56px" /></span>
+            <span className="logo-window" aria-hidden="true"><Image src="/images/al-asif-logo.png" alt="" width={1024} height={1024} priority sizes="56px" /></span>
             <span className="brand-name"><strong>AL-ASIF</strong><small>ENTERPRISE</small></span>
           </a>
           <nav className="desktop-nav" aria-label="Main navigation">
@@ -370,7 +370,7 @@ export default function Home() {
       </main>
 
       <footer className="site-footer">
-        <div className="container footer-top"><div><a className="brand footer-brand" href="#home"><span className="logo-window" aria-hidden="true"><Image src="/images/al-asif-letterhead.jpg" alt="" width={1582} height={2048} sizes="56px" /></span><span className="brand-name"><strong>AL-ASIF</strong><small>ENTERPRISE</small></span></a><p>Solar equipment, projects and support from Karachi to customers across Pakistan.</p></div><div className="footer-links"><div><span>Explore</span><a href="#services">Services</a><a href="#projects">Projects</a><a href="#process">Process</a></div><div><span>Contact</span><a href={`tel:${CONTACT.phoneHref}`}>{CONTACT.phoneLabel}</a><a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a><a href="#quote">Request a quote</a></div></div></div>
+        <div className="container footer-top"><div><a className="brand footer-brand" href="#home"><span className="logo-window" aria-hidden="true"><Image src="/images/al-asif-logo.png" alt="" width={1024} height={1024} sizes="56px" /></span><span className="brand-name"><strong>AL-ASIF</strong><small>ENTERPRISE</small></span></a><p>Solar equipment, projects and support from Karachi to customers across Pakistan.</p></div><div className="footer-links"><div><span>Explore</span><a href="#services">Services</a><a href="#projects">Projects</a><a href="#process">Process</a></div><div><span>Contact</span><a href={`tel:${CONTACT.phoneHref}`}>{CONTACT.phoneLabel}</a><a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a><a href="#quote">Request a quote</a></div></div></div>
         <div className="container footer-bottom"><span>© {new Date().getFullYear()} Al-Asif Enterprise. All rights reserved.</span><span><a href="/privacy">Privacy</a> · Karachi, Pakistan</span></div>
       </footer>
 
