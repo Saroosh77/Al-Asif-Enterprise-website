@@ -9,7 +9,7 @@
   },
   "emailDelivery": {
     "to": "asifmumtazk@gmail.com",
-    "from": "Al-Asif Enterprise Pvt Ltd <info@mail.alasifenterprise.com.pk>"
+    "from": "Al-Asif Enterprise <info@mail.alasifenterprise.com.pk>"
   },
   "turnstileSiteKey": "0x4AAAAAAERGdRy02D6bp_q9"
 }
