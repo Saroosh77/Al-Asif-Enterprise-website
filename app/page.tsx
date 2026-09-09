@@ -293,7 +293,7 @@ export default function Home() {
               </div>
             </div>
             <div className="hero-visual">
-              <div className="hero-image-window"><Image src="/images/hero-solar-equipment.jpg" alt="Solar inverters and battery equipment supplied by Al-Asif Enterprise" width={1201} height={1600} priority sizes="(max-width: 980px) 90vw, 44vw" /></div>
+              <div className="hero-image-window"><Image src="/images/hero-solar-equipment.jpg" alt="Rooftop solar panel installation on a Karachi home at sunset" width={1024} height={1024} priority sizes="(max-width: 980px) 90vw, 44vw" /></div>
               <div className="hero-badge top-badge"><small>Systems for</small><strong>Home · Shop · Office</strong></div>
               <div className="hero-badge bill-badge"><span aria-hidden="true">↘</span><div><small>Start with your</small><strong>Monthly electricity bill</strong></div></div>
             </div>
@@ -318,8 +318,8 @@ export default function Home() {
             <div className="section-heading split-heading inverse"><div><p className="eyebrow light"><span /> Equipment & project work</p><h2>Built around dependable components.</h2></div><p>Inverters, batteries, protection and wiring are selected around the site—not forced into a one-size package.</p></div>
             <div className="equipment-gallery">
               <article className="equipment-card equipment-card-large"><div className="equipment-image equipment-main" role="img" aria-label="Installed Solplanet solar inverter system" /><div className="equipment-caption"><span>Installation</span><h3>Hybrid inverter setup</h3><p>Neat equipment placement with practical access for monitoring and maintenance.</p></div></article>
-              <article className="equipment-card"><div className="equipment-image equipment-inverter" role="img" aria-label="Crown solar inverter" /><div className="equipment-caption"><span>Equipment</span><h3>Inverter options</h3><p>Selected for load, operating mode and expansion needs.</p></div></article>
-              <article className="equipment-card"><div className="equipment-image equipment-battery" role="img" aria-label="Solar battery backup equipment" /><div className="equipment-caption"><span>Backup</span><h3>Battery solutions</h3><p>Configured around essential loads and expected outage duration.</p></div></article>
+              <article className="equipment-card"><div className="equipment-image equipment-inverter" role="img" aria-label="Suntrix MPPT solar inverter" /><div className="equipment-caption"><span>Equipment</span><h3>Inverter options</h3><p>Selected for load, operating mode and expansion needs.</p></div></article>
+              <article className="equipment-card"><div className="equipment-image equipment-battery" role="img" aria-label="Lithium-ion solar battery stock" /><div className="equipment-caption"><span>Backup</span><h3>Battery solutions</h3><p>Configured around essential loads and expected outage duration.</p></div></article>
             </div>
             <p className="photo-credit">Project and equipment photographs supplied by Al-Asif Enterprise.</p>
           </div>
